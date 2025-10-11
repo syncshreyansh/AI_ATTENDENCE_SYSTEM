@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Attendance Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/dashboard.css') }}"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Header -->
+      <header class="header glass-card">
+        <div class="header-content">
+          <div class="logo-section">
+            <h1><i class="fas fa-graduation-cap"></i> Smart Attendance</h1>
+          </div>
+          <div class="controls-section">
+            <div class="theme-toggle" id="themeToggle">
+              <div class="theme-toggle-slider"></div>
+              <i class="fas fa-sun theme-icon sun-icon"></i>
+              <i class="fas fa-moon theme-icon moon-icon"></i>
+            </div>
+            <button id="startSystem" class="liquid-button success">
+              <i class="fas fa-play"></i> Start
+            </button>
+            <button id="stopSystem" class="liquid-button danger" disabled>
+              <i class="fas fa-stop"></i> Stop
+            </button>
+            <div class="status-indicator">
+              <div class="status-dot offline"></div>
+              <span>Offline</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card glass-card" style="--index: 0">
+          <div class="stat-card-inner">
+            <div class="stat-content">
+              <h3 id="presentCount">0</h3>
+              <p>Present Today</p>
+            </div>
+            <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+          </div>
+        </div>
+        <div class="stat-card glass-card" style="--index: 1">
+          <div class="stat-card-inner">
+            <div class="stat-content">
+              <h3 id="absentCount">0</h3>
+              <p>Absent Today</p>
+            </div>
+            <div class="stat-icon"><i class="fas fa-user-times"></i></div>
+          </div>
+        </div>
+        <div class="stat-card glass-card" style="--index: 2">
+          <div class="stat-card-inner">
+            <div class="stat-content">
+              <h3 id="attendanceRate">0%</h3>
+              <p>Attendance Rate</p>
+            </div>
+            <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+          </div>
+        </div>
+        <div class="stat-card glass-card" style="--index: 3">
+          <div class="stat-card-inner">
+            <div class="stat-content">
+              <h3 id="totalStudents">0</h3>
+              <p>Total Students</p>
+            </div>
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="main-grid">
+        <section class="glass-card">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-video"></i> Live Recognition
+            </h2>
+            <button id="enrollBtn" class="liquid-button">
+              <i class="fas fa-user-plus"></i> Enroll Student
+            </button>
+          </div>
+          <div class="live-feed" id="liveFeed">
+            <div class="feed-placeholder">
+              <i class="fas fa-camera-slash"></i>
+              <p>Camera Feed Inactive</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="glass-card">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-history"></i> Recent Events
+            </h2>
+          </div>
+          <div class="scrollable-list" id="recentEvents">
+            <p style="text-align: center; color: var(--text-secondary)">
+              No events yet
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Enrollment Modal -->
+    <div class="modal" id="enrollModal">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h2>Enroll New Student</h2>
+          <span class="close-modal" id="closeModal">&times;</span>
+        </div>
+        <form id="enrollForm">
+          <div class="form-group">
+            <label for="studentName">Student Name</label
+            ><input type="text" id="studentName" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label for="studentId">Student ID</label
+            ><input type="text" id="studentId" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label for="studentClass">Class</label
+            ><input type="text" id="studentClass" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label for="studentSection">Section</label
+            ><input
+              type="text"
+              id="studentSection"
+              class="form-input"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="parentPhone">Parent Phone</label
+            ><input type="tel" id="parentPhone" class="form-input" />
+          </div>
+
+          <div class="camera-preview-box">
+            <video id="videoPreview" autoplay playsinline></video>
+            <canvas id="photoCanvas"></canvas>
+          </div>
+
+          <div class="form-group">
+            <button type="button" id="capturePhoto" class="liquid-button">
+              <i class="fas fa-camera"></i> Capture Photo
+            </button>
+          </div>
+          <div class="form-actions">
+            <button
+              type="button"
+              id="cancelEnroll"
+              class="liquid-button"
+              style="background: linear-gradient(135deg, #6b7280, #4b5563)"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="liquid-button success">
+              <i class="fas fa-save"></i> Enroll Student
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  </body>
+</html>
