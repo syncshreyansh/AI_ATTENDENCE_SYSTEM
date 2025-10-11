@@ -113,14 +113,6 @@ proving optimization can be *smarter*, not harder. 😎
 
 ---
 
-## 🧑‍💻 Author
-
-**👾 Shreyansh Singh**  
-Tech Enthusiast • AI Explorer • Code Meets Creativity 💡  
-📍 Uttar Pradesh, India  
-💬 [LinkedIn](#) • [GitHub](#) • [Instagram](#)
-
----
 
 ## ⭐ Show Some Love
 
@@ -129,9 +121,6 @@ If you liked this project —
 💬 Drop a comment  
 or 🧠 **Fork it** and make your own futuristic attendance system!
 
-<p align="center">
-  <img src="https://img.shields.io/github/stars/yourusername/Smart-Attendance-System?style=social" alt="GitHub stars"/>
-</p>
 
 ---
 
