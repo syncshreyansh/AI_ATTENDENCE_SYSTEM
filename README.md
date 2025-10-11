@@ -2,10 +2,12 @@
 <h3 align="center">An AI-Powered Face Recognition System with a Sleek, Futuristic UI</h3>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10+-blue?logo=python" alt="Python Badge"/>
-  <img src="https://img.shields.io/badge/Flask-Backend-orange?logo=flask" alt="Flask Badge"/>
-  <img src="https://img.shields.io/badge/HTML-CSS-JS-Frontend-yellow?logo=html5" alt="Frontend Badge"/>
-  <img src="https://img.shields.io/badge/AI%20%26%20CV-Face_Recognition-green?logo=opencv" alt="AI Badge"/>
+  <img src="https://img.shields.io/badge/Python-3670A0?logo=python&logoColor=ffdd54&style=for-the-badge" alt="Python Badge" />
+  <img src="https://img.shields.io/badge/Flask-000000?logo=flask&logoColor=white&style=for-the-badge" alt="Flask Badge" />
+  <img src="https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=ffffff&style=for-the-badge" alt="HTML5 Badge" />
+  <img src="https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=ffffff&style=for-the-badge" alt="CSS3 Badge" />
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=000000&style=for-the-badge" alt="JavaScript Badge" />
+  <img src="https://img.shields.io/badge/OpenCV-5C3EE8?logo=opencv&logoColor=ffffff&style=for-the-badge" alt="OpenCV Badge" />
 </p>
 
 ---
