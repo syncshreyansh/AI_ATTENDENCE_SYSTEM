@@ -15,6 +15,7 @@ class Student(db.Model):
     enrollment_date = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='active')
     points = db.Column(db.Integer, default=0)
+    image_path = db.Column(db.String(200), nullable=True)
 
 class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)

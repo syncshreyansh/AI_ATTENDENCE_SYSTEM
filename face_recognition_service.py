@@ -10,29 +10,42 @@ from models import Student
 class FaceRecognitionService:
     def __init__(self):
         self.detector = dlib.get_frontal_face_detector()
-        # You will need to download this file and place it in your project folder
         self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
         self.known_encodings = []
         self.known_names = []
         self.known_ids = []
-        self.load_known_faces()
+        self.loaded = False
+
+
+    def _ensure_loaded(self):
+      
+        if not self.loaded:
+            try:
+                self.load_known_faces()
+            except Exception as e:
+                print(f"Error lazily loading faces: {e}")
 
     def load_known_faces(self):
         # Load all enrolled students
         # Note: This requires an active Flask application context to work
+        print("### DEBUG ### Loading known faces from database...")
         try:
             students = Student.query.filter_by(status='active').all()
             self.known_encodings = []
             self.known_names = []
             self.known_ids = []
             for student in students:
-                if student.face_encoding:
+                
+                if student.face_encoding is not None:
+                
                     self.known_encodings.append(student.face_encoding)
                     self.known_names.append(student.name)
                     self.known_ids.append(student.id)
+            self.loaded = True # <-- SET FLAG
+            print(f"### DEBUG ### Loaded {len(self.known_ids)} faces.")
         except Exception as e:
             print(f"Error loading known faces: {e}")
-            print("This may be due to running outside of a Flask app context.")
+
 
 
     def calculate_ear(self, eye):
@@ -60,14 +73,18 @@ class FaceRecognitionService:
         return False
 
     def recognize_faces(self, frame):
+        self._ensure_loaded()
         # Recognize faces in frame
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         face_locations = face_recognition.face_locations(rgb_frame)
         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+        
         results = []
+        
         for face_encoding in face_encodings:
             matches = face_recognition.compare_faces(self.known_encodings, face_encoding)
             face_distances = face_recognition.face_distance(self.known_encodings, face_encoding)
+            
             if len(face_distances) > 0:
                 best_match_index = np.argmin(face_distances)
                 if matches[best_match_index] and face_distances[best_match_index] < 0.6:
@@ -76,18 +93,34 @@ class FaceRecognitionService:
                         'name': self.known_names[best_match_index],
                         'confidence': 1 - face_distances[best_match_index]
                     })
-        return results
+        
+        # Return both the matches and the total number of faces detected
+        return {'matches': results, 'total_faces': len(face_locations)}
 
     def enroll_student(self, frame, student_id):
+        self._ensure_loaded()
         # Enroll new student face
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        face_locations = face_recognition.face_locations(rgb_frame)
-        if len(face_locations) == 1:
-            face_encoding = face_recognition.face_encodings(rgb_frame, face_locations)[0]
-            student = Student.query.get(student_id)
-            if student:
-                student.face_encoding = face_encoding
-                # Note: This will not commit the change to the database.
-                # The calling function should handle db.session.commit()
-                return True
-        return False
+        
+        face_locations = face_recognition.face_locations(rgb_frame, model='hog')
+        
+        if len(face_locations) == 0:
+            print("### DEBUG ### 'hog' model found 0 faces, trying 'cnn' model...")
+            face_locations = face_recognition.face_locations(rgb_frame, model='cnn')
+
+        # Check the results
+        if len(face_locations) == 0:
+            return (False, "No face found in the image. Please try again with better lighting or a clearer photo.")
+        
+        if len(face_locations) > 1:
+            return (False, "Multiple faces found. Please ensure only one person is in the photo.")
+
+        face_encoding = face_recognition.face_encodings(rgb_frame, face_locations)[0]
+        
+        student = Student.query.filter_by(student_id=student_id).first()
+        
+        if student:
+            student.face_encoding = face_encoding
+            return (True, "Face encoding successful.")
+        
+        return (False, "Student ID not found in database (this should not happen).")

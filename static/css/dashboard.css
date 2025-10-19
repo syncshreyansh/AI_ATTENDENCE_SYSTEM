@@ -273,15 +273,32 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative; /* ADDED */
+  overflow: hidden; /* ADDED */
 }
+/* UPDATED: Placeholder is now hidden by default */
 .feed-placeholder {
   text-align: center;
   color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .feed-placeholder i {
   font-size: 48px;
   color: var(--primary-purple);
   margin-bottom: 16px;
+}
+/* ADDED: Styles for the new video element */
+#liveFeedVideo {
+  display: none; /* Hide by default */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror mode */
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .scrollable-list {
@@ -330,12 +347,17 @@ body {
   backdrop-filter: blur(8px);
   z-index: 1000;
   animation: fadeIn 0.3s ease;
+  padding: 2%; /* Add padding for small screens */
 }
 .modal-content {
   position: relative;
-  margin: 5% auto;
-  max-width: 500px;
+  margin: 2% auto; /* MODIFIED */
+  max-width: 1200px; /* MODIFIED */
+  width: 100%; /* MODIFIED */
+  max-height: 95vh; /* MODIFIED */
   animation: slideUp 0.4s ease-out;
+  display: flex; /* MODIFIED */
+  flex-direction: column; /* MODIFIED */
 }
 @keyframes fadeIn {
   from {
@@ -355,6 +377,14 @@ body {
     transform: translateY(0);
   }
 }
+
+.modal-header {
+  flex-shrink: 0; /* ADDED */
+  display: flex; /* ADDED */
+  justify-content: space-between; /* ADDED */
+  align-items: center; /* ADDED */
+}
+
 .modal-header h2 {
   color: var(--text-primary);
 }
@@ -368,6 +398,54 @@ body {
   transform: rotate(90deg);
   color: var(--primary-purple);
 }
+
+/* === NEW MODAL LAYOUT STYLES === */
+.modal-body-split {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 24px;
+  overflow-y: auto; /* Allow content to scroll */
+  padding-top: 10px; /* Add some space from header */
+}
+
+.modal-left-panel {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 300px; /* Prevent it from getting too small */
+}
+
+.modal-right-panel {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  min-width: 300px; /* Prevent it from getting too small */
+}
+
+.modal-right-panel .form-group {
+  margin-bottom: 16px;
+}
+
+.modal-right-panel .form-actions {
+  margin-top: auto; /* Pushes buttons to the bottom */
+  padding-top: 16px;
+}
+
+/* UPDATED: Capture button container */
+.capture-button-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.capture-button-container .liquid-button {
+  flex: 1;
+  justify-content: center;
+}
+/* === END NEW MODAL STYLES === */
 
 .form-group {
   margin-bottom: 20px;
@@ -395,13 +473,16 @@ body {
 
 .camera-preview-box {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  margin-bottom: 20px;
+  /* aspect-ratio: 4 / 3; MODIFIED: Removed fixed aspect ratio */
+  margin-bottom: 0; /* MODIFIED */
   border-radius: 16px;
   background: rgba(0, 0, 0, 0.2);
   overflow: hidden;
   position: relative;
   border: 1px solid var(--glass-border);
+
+  flex-grow: 1; /* ADDED: This makes it fill vertical space */
+  min-height: 300px; /* ADDED: Set a minimum height */
 }
 .camera-preview-box video,
 .camera-preview-box canvas {
@@ -416,4 +497,148 @@ body {
 }
 #photoCanvas {
   display: none;
+}
+
+/* === NEW RESPONSIVENESS RULES === */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    margin: 2% auto;
+    max-height: 95vh;
+  }
+
+  .modal-body-split {
+    flex-direction: column; /* Stack vertically on small screens */
+  }
+
+  .modal-left-panel,
+  .modal-right-panel {
+    flex-basis: auto; /* Reset flex-basis */
+  }
+
+  .modal-right-panel .form-actions {
+    margin-top: 16px; /* Reset auto margin */
+  }
+
+  .camera-preview-box {
+    aspect-ratio: 4 / 3; /* Restore aspect ratio on mobile */
+    flex-grow: 0; /* Disable vertical stretch */
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-container {
+    padding: 15px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logo-section h1 {
+    font-size: 1.4rem;
+  }
+
+  .controls-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .controls-section .liquid-button {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr; /* Stack stats on smallest screens */
+    gap: 15px;
+  }
+
+  .main-grid {
+    gap: 15px;
+  }
+
+  .glass-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .section-header .liquid-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .liquid-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* === ADDED: UTILITY CLASS*/
+.hidden {
+  display: none;
+}
+
+.live-feed {
+  position: relative;
+  overflow: hidden;
+}
+
+.recognition-overlay {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease-out;
+}
+
+.recognition-overlay.show {
+  opacity: 1;
+  visibility: visible;
+  bottom: 30px; /* Animate upwards */
+}
+
+/* Success State (Green) */
+.recognition-overlay.success {
+  background: rgba(16, 185, 129, 0.7); /* Green */
+  border-color: rgba(16, 185, 129, 1);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+/* Error State (Red) */
+.recognition-overlay.error {
+  background: rgba(239, 68, 68, 0.7); /* Red */
+  border-color: rgba(239, 68, 68, 1);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+/* Recognizing State (Purple) */
+.recognition-overlay.recognizing {
+  background: rgba(139, 92, 246, 0.7); /* Purple */
+  border-color: rgba(139, 92, 246, 1);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 }

@@ -8,10 +8,15 @@ from face_recognition_service import FaceRecognitionService
 import base64
 import cv2
 import numpy as np
+import os 
 
 api = Blueprint('api', __name__)
 attendance_service = AttendanceService()
 face_service = FaceRecognitionService()
+
+def ensure_dir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 @api.route('/')
 def dashboard():
@@ -33,6 +38,13 @@ def students():
         } for s in students])
     elif request.method == 'POST':
         data = request.json
+        
+        # Check if student_id already exists 
+        existing_student = Student.query.filter_by(student_id=data['student_id']).first()
+        if existing_student:
+            print(f"### DEBUG ### Student creation failed: ID {data['student_id']} already exists.")
+            return jsonify({'message': f"Student ID {data['student_id']} already exists."}), 400
+            
         student = Student(
             name=data['name'],
             student_id=data['student_id'],
@@ -42,6 +54,7 @@ def students():
         )
         db.session.add(student)
         db.session.commit()
+        print(f"### DEBUG ### Student created successfully: {data['student_id']}")
         return jsonify({'id': student.id, 'message': 'Student created'})
 
 @api.route('/api/attendance', methods=['GET', 'POST'])
@@ -103,24 +116,60 @@ def alerts():
 
 @api.route('/api/enroll', methods=['POST'])
 def enroll_face():
+    print("\n### DEBUG ### /api/enroll endpoint was hit.")
+    
     # Enroll student face encoding
     data = request.json
-    student_id = data['student_id']
+    student_id_str = data['student_id'] # This is the string ID like "101"
     frame_data = data['frame']  # Base64 encoded frame
+    
+    print(f"### DEBUG ### Attempting to enroll for student_id: {student_id_str}")
     
     # Decode frame and process
     frame_bytes = base64.b64decode(frame_data)
     nparr = np.frombuffer(frame_bytes, np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
-    success = face_service.enroll_student(frame, student_id)
+    # Try to enroll the face encoding
+    # UPDATED: Now expects a (success, message) tuple
+    success, message = face_service.enroll_student(frame, student_id_str)
+    
+    print(f"### DEBUG ### face_service.enroll_student() returned: success={success}, message={message}")
+    
     if success:
-        # Commit the face encoding to the database
-        db.session.commit()
-        face_service.load_known_faces()  # Reload faces
-        return jsonify({'success': True, 'message': 'Face enrolled successfully'})
+        try:
+            print("### DEBUG ### Face encoding successful. Trying to save image...")
+            # Find student again to save image path
+            student = Student.query.filter_by(student_id=student_id_str).first()
+            if student:
+                # Create the file path
+                enroll_dir = os.path.join('static', 'enrollments')
+                print(f"### DEBUG ### Target directory: {enroll_dir}")
+                ensure_dir(enroll_dir)
+                
+                image_filename = f"student_{student_id_str}.jpg"
+                image_path = os.path.join(enroll_dir, image_filename)
+                
+                # Save the image to the file
+                cv2.imwrite(image_path, frame)
+                print(f"### DEBUG ### Image saved to: {image_path}")
+                
+                # Store the path in the database
+                student.image_path = image_path
+            
+            # Commit both face_encoding and image_path
+            db.session.commit()
+            print("### DEBUG ### Database commit successful.")
+            face_service.load_known_faces()  # Reload faces
+            return jsonify({'success': True, 'message': 'Face enrolled and image saved successfully'})
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"\n\n### DEBUG ### ERROR_SAVING_IMAGE_OR_DB_COMMIT: {str(e)}\n\n")
+            return jsonify({'success': False, 'message': f'Face enrolled, but failed to save image: {str(e)}'})
     else:
-        return jsonify({'success': False, 'message': 'Face enrollment failed'})
+        print(f"### DEBUG ### Face enrollment failed: {message}")
+        return jsonify({'success': False, 'message': message})
 
 @api.route('/api/recognize', methods=['POST'])
 def recognize():

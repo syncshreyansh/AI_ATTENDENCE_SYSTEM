@@ -44,43 +44,70 @@ class CameraService:
         from face_recognition_service import FaceRecognitionService
         from attendance_service import AttendanceService
         
-        # This needs to be run within an app context to access the database
         with app.app_context():
             face_service = FaceRecognitionService()
             attendance_service = AttendanceService()
 
-        while self.is_running:
-            ret, frame = self.camera.read()
-            if not ret:
-                time.sleep(0.1)
-                continue
+            while self.is_running:
+                ret, frame = self.camera.read()
+                if not ret:
+                    time.sleep(0.1)
+                    continue
 
-            self.frame_counter += 1
+                self.frame_counter += 1
 
-            # --- OPTIMIZATION: Process only every 3rd frame ---
-            if self.frame_counter % 3 == 0:
-                if face_service.detect_blink(frame):
-                    self.blink_counter += 1
+                if self.frame_counter % 3 == 0:
+                    
+                    # 1. Recognize faces
+                    rec_result = face_service.recognize_faces(frame)
+                    total_faces = rec_result['total_faces']
+                    matches = rec_result['matches']
+                    
+                    # 2. Handle Blink Detection & Marking
+                    if total_faces > 0 and len(matches) > 0:
+                        if face_service.detect_blink(frame):
+                            self.blink_counter += 1
+                        
+                        if self.blink_counter >= Config.REQUIRED_BLINKS:
+                            for person in matches:
+                                # App context is already active from the 'with' block
+                                result = attendance_service.mark_attendance(
+                                    person['student_id'],
+                                    person['confidence'],
+                                    True
+                                )
+
+                                if result['success']:
+                                    # This event is our "SUCCESS" popup
+                                    socketio.emit('attendance_update', {
+                                        'student_name': result['student_name'],
+                                        'points': result['points'],
+                                        'timestamp': time.time()
+                                    })
+                            self.blink_counter = 0 # Reset blinks after successful recognition
+                    
+                    # 3. Send Status Updates to Frontend
+                    elif total_faces > 0 and len(matches) == 0:
+                        # Face detected, but not in database
+                        socketio.emit('recognition_status', {
+                            'status': 'unknown', 
+                            'message': 'Student not listed'
+                        })
+                    
+                    elif total_faces > 0 and len(matches) > 0:
+                        # Face recognized, waiting for blinks
+                        socketio.emit('recognition_status', {
+                            'status': 'recognizing', 
+                            'message': f"Recognized {matches[0]['name']}. Please blink..."
+                        })
+
+                    else: # total_faces == 0
+                        # No face detected, clear any popups
+                        socketio.emit('recognition_status', {'status': 'clear'})
+                    
+
                 
-                if self.blink_counter >= Config.REQUIRED_BLINKS:
-                    recognized = face_service.recognize_faces(frame)
-                    for person in recognized:
-                        # Database operations must be within an app context
-                        with app.app_context():
-                            result = attendance_service.mark_attendance(
-                                person['student_id'],
-                                person['confidence'],
-                                True
-                            )
-                        if result['success']:
-                            socketio.emit('attendance_update', {
-                                'student_name': result['student_name'],
-                                'points': result['points'],
-                                'timestamp': time.time()
-                            })
-                    self.blink_counter = 0 
-            
-            time.sleep(0.05)
+                time.sleep(0.05)
 
 camera_service = CameraService()
 
@@ -99,5 +126,6 @@ def handle_stop_system():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    # Run the Flask app with SocketIO support
+    
+    # We are back to http://
     socketio.run(app, host='0.0.0.0', port=Config.FLASK_PORT, debug=Config.DEBUG)
